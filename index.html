@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Acesso Talentos Consultoria</title>
+    <!-- Incluindo Tailwind CSS para estilização -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Incluindo a fonte Inter -->
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
+      body {
+        font-family: 'Inter', sans-serif;
+      }
+      @keyframes fade-in-down {
+        0% { opacity: 0; transform: translateY(-20px); }
+        100% { opacity: 1; transform: translateY(0); }
+      }
+      @keyframes fade-in-up {
+        0% { opacity: 0; transform: translateY(20px); }
+        100% { opacity: 1; transform: translateY(0); }
+      }
+      .animate-fade-in-down {
+        animation: fade-in-down 0.5s ease-out forwards;
+      }
+      .animate-fade-in-up {
+        animation: fade-in-up 0.5s ease-out forwards;
+      }
+      .animate-pulse {
+        animation: pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+      }
+    </style>
+
+    <!-- Incluindo a biblioteca MSAL.js para autenticação com Azure AD -->
+    <script src="https://alcdn.msauth.net/browser/2.34.0/js/msal-browser.js"></script>
+</head>
+<body>
+    <div id="root"></div>
+
+    <!-- Incluindo React e ReactDOM -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <!-- O código do seu aplicativo React com MSAL -->
+    <script type="text/babel">
+      const { useState, useEffect } = React;
+
+      // Configuração MSAL - SUBSTITUA COM SUAS PRÓPRIAS CREDENCIAIS DO AZURE AD
+      const msalConfig = {
+        auth: {
+          clientId: "SEU_CLIENT_ID_AQUI", // ID da sua aplicação no Azure AD
+          authority: "https://login.microsoftonline.com/common", // Ou o ID do seu tenant: https://login.microsoftonline.com/SEU_TENANT_ID
+          redirectUri: "http://localhost:8080/index.html", // URL para onde a Microsoft redireciona após o login
+        }
+      };
+
+      const msalInstance = new msal.PublicClientApplication(msalConfig);
+
+      const App = () => {
+        // Estados para gerenciar os dados do formulário e o status da autenticação
+        const [account, setAccount] = useState(null);
+        const [isLoggedIn, setIsLoggedIn] = useState(false);
+        const [error, setError] = useState('');
+        const [loading, setLoading] = useState(true);
+
+        useEffect(() => {
+          // Lida com a resposta do login após o redirecionamento
+          msalInstance.handleRedirectPromise().then((response) => {
+            if (response && response.account) {
+              // Verifica se o e-mail do usuário pertence ao domínio permitido
+              if (response.account.username.endsWith('@talentosconsultoria.com.br')) {
+                setAccount(response.account);
+                setIsLoggedIn(true);
+              } else {
+                setError('Acesso negado. Apenas usuários do domínio talentosconsultoria.com.br podem entrar.');
+                msalInstance.logoutRedirect();
+              }
+            } else {
+              // Tenta pegar o token do cache se o usuário já estiver logado
+              const currentAccounts = msalInstance.getAllAccounts();
+              if (currentAccounts && currentAccounts.length > 0) {
+                const loggedInAccount = currentAccounts[0];
+                if (loggedInAccount.username.endsWith('@talentosconsultoria.com.br')) {
+                  setAccount(loggedInAccount);
+                  setIsLoggedIn(true);
+                }
+              }
+            }
+            setLoading(false);
+          }).catch(error => {
+            console.error("MSAL error:", error);
+            setError("Ocorreu um erro na autenticação.");
+            setLoading(false);
+          });
+        }, []);
+
+        const handleLogin = () => {
+          setError('');
+          // Inicia o fluxo de login da MSAL
+          msalInstance.loginRedirect({
+            scopes: ["User.Read"], // Permissões que a sua aplicação precisa
+          });
+        };
+
+        const handleLogout = () => {
+          // Inicia o fluxo de logout da MSAL
+          msalInstance.logoutRedirect();
+        };
+
+        if (loading) {
+          return (
+            <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+              <div className="text-xl font-bold text-gray-600">Carregando...</div>
+            </div>
+          );
+        }
+
+        if (isLoggedIn) {
+          return (
+            <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4 sm:p-6 lg:p-8 font-['Inter']">
+              <div className="bg-white p-12 rounded-3xl shadow-2xl max-w-lg w-full text-center border border-gray-100">
+                <h2 className="text-5xl font-extrabold text-blue-700 mb-4 animate-fade-in-down">
+                  Bem-vindo, {account.name}!
+                </h2>
+                <p className="text-xl text-gray-700 mb-8 animate-fade-in-up">
+                  Você está logado com sucesso.
+                </p>
+                <button
+                  onClick={handleLogout}
+                  className="w-full py-4 px-6 border-transparent rounded-xl shadow-lg text-xl font-bold text-white bg-gradient-to-r from-blue-600 to-blue-800 hover:from-blue-700 hover:to-blue-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition duration-300 ease-in-out transform hover:scale-105"
+                >
+                  Sair
+                </button>
+              </div>
+            </div>
+          );
+        }
+
+        return (
+          <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4 sm:p-6 lg:p-8 font-['Inter']">
+            <div className="bg-white p-12 rounded-3xl shadow-2xl max-w-lg w-full border border-gray-100">
+              <h2 className="text-4xl font-extrabold text-center text-blue-700 mb-10 animate-fade-in-down">
+                Acesso Talentos Consultoria
+              </h2>
+              <p className="text-lg text-gray-700 text-center mb-6">
+                Faça login usando sua conta do Microsoft 365.
+              </p>
+              
+              {error && (
+                <div className="text-md text-red-600 text-center font-medium mt-4 animate-pulse">
+                  {error}
+                </div>
+              )}
+              
+              <div>
+                <button
+                  onClick={handleLogin}
+                  className="w-full flex justify-center py-4 px-6 border-transparent rounded-xl shadow-lg text-xl font-bold text-white bg-gradient-to-r from-blue-600 to-blue-800 hover:from-blue-700 hover:to-blue-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition duration-300 ease-in-out transform hover:scale-105"
+                >
+                  Entrar com Microsoft
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      };
+
+      const container = document.getElementById('root');
+      if (container) {
+        const root = ReactDOM.createRoot(container);
+        root.render(<App />);
+      }
+    </script>
+</body>
+</html>
