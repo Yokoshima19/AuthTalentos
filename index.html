@@ -51,7 +51,7 @@
         auth: {
           clientId: "aceb5b29-df99-4d90-8533-233407b08a2c", // ID da sua aplicação no Azure AD
           authority: "https://login.microsoftonline.com/talentosconsultoria.com.br", // AGORA USAMOS O TENANT ESPECÍFICO
-          redirectUri: "http://localhost:8080/index.html", // URL para onde a Microsoft redireciona após o login
+          redirectUri: "https://dpdoc.talentosconsultoria.com.br", // URL para onde a Microsoft redireciona após o login
         }
       };
 
@@ -97,7 +97,7 @@
 
         const handleLogin = () => {
           setError('');
-          // Inicia o fluxo de login da MSAL
+          // Inicia o fluxo de login da MSAL usando redirecionamento
           msalInstance.loginRedirect({
             scopes: ["User.Read"], // Permissões que a sua aplicação precisa
           });
