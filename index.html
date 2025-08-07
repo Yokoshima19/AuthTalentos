@@ -68,40 +68,38 @@
           // Lida com a resposta do login após o redirecionamento
           msalInstance.handleRedirectPromise().then((response) => {
             if (response && response.account) {
-              // Verifica se o e-mail do usuário pertence ao domínio permitido
+              // Se a resposta tiver um account, o login foi bem-sucedido
               if (response.account.username.endsWith('@talentosconsultoria.com.br')) {
                 setAccount(response.account);
                 setIsLoggedIn(true);
+                setLoading(false);
               } else {
                 setError('Acesso negado. Apenas usuários do domínio talentosconsultoria.com.br podem entrar.');
                 msalInstance.logoutRedirect();
               }
             } else {
-              // Tenta pegar o token do cache se o usuário já estiver logado
+              // Se não houver resposta, verifica se o usuário já está logado (no cache)
               const currentAccounts = msalInstance.getAllAccounts();
               if (currentAccounts && currentAccounts.length > 0) {
                 const loggedInAccount = currentAccounts[0];
                 if (loggedInAccount.username.endsWith('@talentosconsultoria.com.br')) {
                   setAccount(loggedInAccount);
                   setIsLoggedIn(true);
+                  setLoading(false);
                 }
+              } else {
+                // Se não está logado e não há conta no cache, inicia o redirecionamento
+                msalInstance.loginRedirect({
+                  scopes: ["User.Read"],
+                });
               }
             }
-            setLoading(false);
           }).catch(error => {
             console.error("MSAL error:", error);
             setError("Ocorreu um erro na autenticação.");
             setLoading(false);
           });
         }, []);
-
-        const handleLogin = () => {
-          setError('');
-          // Inicia o fluxo de login da MSAL usando redirecionamento
-          msalInstance.loginRedirect({
-            scopes: ["User.Read"], // Permissões que a sua aplicação precisa
-          });
-        };
 
         const handleLogout = () => {
           // Inicia o fluxo de logout da MSAL
@@ -110,8 +108,10 @@
 
         if (loading) {
           return (
-            <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
-              <div className="text-xl font-bold text-gray-600">Carregando...</div>
+            <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4 font-['Inter']">
+              <div className="text-xl font-bold text-gray-600">
+                Carregando... Redirecionando para a página de login.
+              </div>
             </div>
           );
         }
@@ -144,7 +144,7 @@
                 Acesso Talentos Consultoria
               </h2>
               <p className="text-lg text-gray-700 text-center mb-6">
-                Faça login usando sua conta do Microsoft 365.
+                Redirecionando para a página de login...
               </p>
               
               {error && (
@@ -152,15 +152,6 @@
                   {error}
                 </div>
               )}
-              
-              <div>
-                <button
-                  onClick={handleLogin}
-                  className="w-full flex justify-center py-4 px-6 border-transparent rounded-xl shadow-lg text-xl font-bold text-white bg-gradient-to-r from-blue-600 to-blue-800 hover:from-blue-700 hover:to-blue-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition duration-300 ease-in-out transform hover:scale-105"
-                >
-                  Entrar com Microsoft
-                </button>
-              </div>
             </div>
           </div>
         );
